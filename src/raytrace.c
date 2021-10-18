@@ -27,9 +27,6 @@ Contact me at natechoe1@gmail.com
 #include "vectors.h"
 #include "raytrace.h"
 
-#define printVector(v) printf("%f %f %f\n", v.x, v.y, v.z)
-
-
 int32_t computeColor(Vector v, Point start) {
 //TODO: Add scene data to function args
 //For now there is just a sphere of radius 3 at (1, 5, 2)
@@ -48,15 +45,13 @@ int32_t computeColor(Vector v, Point start) {
 }
 
 void redraw(Vector direction, Point camera, float tilt) {
-	Vector directUp = (Vector) {.x = 0, .y = 0, .z = 1};
+	const Vector directUp = (Vector) {.x = 0, .y = 0, .z = 1};
 	Vector aheadProj = proj(direction, directUp);
 
 	Vector up = sub(directUp, aheadProj);
 	Vector right = cross(up, direction);
 	normalize(&up);
 	normalize(&right);
-	printVector(up);
-	printVector(right);
 
 	Vector realUp = add(mult(cos(tilt), up), mult(sin(tilt), right));
 	Vector realRight = cross(direction, realUp);
@@ -64,15 +59,14 @@ void redraw(Vector direction, Point camera, float tilt) {
 	normalize(&realRight);
 	normalize(&direction);
 	
-	printVector(realUp);
-	printVector(realRight);
-	printVector(direction);
+	float dist = 1.0 / xres;
+	float ystart = (float) yres / xres / 2;
 
 	for (int x = 0; x < xres; x++) {
 		for (int y = 0; y < yres; y++) {
 			Vector currentDirection = direction;
-			currentDirection = add(mult((-xres / 2.0 + x) / xres, realRight), currentDirection);
-			currentDirection = add(mult((-yres / 2.0 + y) / yres, realUp), currentDirection);
+			currentDirection = add(mult((x * dist - 0.5), realRight), currentDirection);
+			currentDirection = add(mult((y * dist - ystart), realUp), currentDirection);
 			putPixel(x, y, computeColor(currentDirection, camera));
 		}
 	}
