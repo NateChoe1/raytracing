@@ -18,4 +18,33 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 Contact me at natechoe1@gmail.com
 */
 
-int32_t computeColor(Vector v, Point start);
+#define SPHERE 0
+
+typedef struct {
+	Point location;
+	float strength;
+} LightSource;
+
+typedef struct {
+	Point center;
+	float radius;
+} Sphere;
+
+typedef struct {
+	int type;
+	union {
+		Sphere sphere;
+	};
+} Object;
+
+typedef struct {
+	int objects;
+	Object *scene;
+	int sources;
+	LightSource *light;
+} Scene;
+
+bool sphereCollision(Point start, Vector v, Point *collisionReturn, Vector *normalVector, Sphere sphere);
+bool sceneCollision(Point start, Vector v, Point *collisionReturn, Vector *normalVector, Scene scene);
+int32_t computeColor(Vector v, Point start, Scene scene);
+void redraw(Vector direction, Point camera, float tilt, Scene scene);

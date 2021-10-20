@@ -20,52 +20,93 @@ Contact me at natechoe1@gmail.com
 
 #include <math.h>
 #include <stdio.h>
+#include <float.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #include "fb.h"
 #include "vectors.h"
 #include "raytrace.h"
 
-int32_t computeColor(Vector v, Point start) {
-//TODO: Add scene data to function args
-//For now there is just a sphere of radius 1 at (0, 5, 0)
-	Point center = (Point) {.x = 2, .y = 10, .z = 0};
+bool sphereCollision(Point start, Vector v,
+		Point *collisionReturn, Vector *normalVector,
+		Sphere sphere) {
+	//the distance between a point on a line and another point create a
+	//quadratic. Converting a ray to parametric form and graphing the
+	//relationship between t and the distance from the solution for that t
+	//and a point produces a quadratic which can be solved with the
+	//quadratic formula.
+	float cxd = start.x - sphere.center.x;
+	float cyd = start.y - sphere.center.y;
+	float czd = start.z - sphere.center.z;
+	float a = (v.x * v.x + v.y * v.y + v.z * v.z);
+	float b = 2 * (
+			v.x * cxd +
+			v.y * cyd +
+			v.z * czd
+	);
+	float c = cxd * cxd + cyd * cyd + czd * czd - sphere.radius * sphere.radius;
+
+	float discriminant = (b * b) - (4 * a * c);
+	if (discriminant < 0)
+		return false;
+	float t = (-b + sqrt(discriminant)) / (2 * a);
+	if (t < 0)
+		return false;
+
+	*collisionReturn = end(start, mult(t, v));
+	*normalVector = PQ(sphere.center, *collisionReturn);
+
+	return true;
+}
+
+bool sceneCollision(Point start, Vector v,
+		Point *collisionReturn, Vector *normalVector,
+		Scene scene) {
+	int bestObject = -1;
+	Point bestPoint;
+	Vector bestVector;
+	float mostDistance = FLT_MAX;
+	for (int i = 0; i < scene.objects; i++) {
+		Point p;
+		Vector v;
+		switch (scene.scene[i].type) {
+			case SPHERE:
+				if (sphereCollision(start, v, &p, &v, scene.scene[i].sphere))
+					break;
+				continue;
+			default:
+				return false;
+		}
+		float curr = mag2(PQ(start, p));
+		if (curr < mostDistance) {
+			mostDistance = curr;
+			bestObject = i;
+			bestPoint = p;
+			bestVector = v;
+		}
+	}
+	if (bestObject == -1)
+		return false;
+	*collisionReturn = bestPoint;
+	*normalVector = bestVector;
+	return true;
+}
+
+int32_t computeColor(Vector v, Point start, Scene scene) {
 	Point light = (Point) {.x = -1, .y = 5, .z = 2};
-	Vector toSphere = PQ(start, center);
-	//NOTE: this is not very well optimized
+	Point intersection;
+	Vector normal;
+	Sphere sphere = (Sphere) {
+		.center = (Point) {.x = 0, .y = 10, .z = 0},
+		.radius = 1,
+	};
 
-	Vector toClosest = proj(v, toSphere);
-	Point closest = end(start, toClosest);
-	float radius = 1;
-	if (d2(closest, center) < radius * radius) {
-		//the distance between a point on a line and another point create a quadratic. Converting
-		//a vector to parametric form and graphing the relationship between t and the distance
-		//from the solution for that t and a point produces a quadratic which can be solved with
-		//the quadratic formula.
-		float cxd = start.x - center.x;
-		float cyd = start.y - center.y;
-		float czd = start.z - center.z;
-		float a = (v.x * v.x + v.y * v.y + v.z * v.z);
-		float b = 2 * (
-				v.x * cxd +
-				v.y * cyd +
-				v.z * czd
-		);
-		float c = cxd * cxd + cyd * cyd + czd * czd - radius * radius;
 
-		float discriminant = (b * b - 4 * a * c);
-		if (discriminant < 0)
-			return RGB(255, 255, 255);
-		float t = (-b + sqrt(discriminant)) / (2 * a);
-		if (t < 0)
-			return RGB(255, 255, 255);
-
-		Point intersection = end(start, mult(t, v));
-		Vector norm = PQ(center, intersection);
-		Vector bounce = reflection(v, norm);
+	if (sphereCollision(start, v, &intersection, &normal, sphere)) {
+		Vector bounce = reflection(v, normal);
 		Vector toLight = PQ(intersection, light);
-
 		float theta = angle(bounce, toLight);
 		float diff = M_PI - fabs(theta - M_PI) - 2;
 		int col = (int) (diff * 200);
@@ -75,7 +116,7 @@ int32_t computeColor(Vector v, Point start) {
 	return RGB(0, 0, 0);
 }
 
-void redraw(Vector direction, Point camera, float tilt) {
+void redraw(Vector direction, Point camera, float tilt, Scene scene) {
 	const Vector directUp = (Vector) {.x = 0, .y = 0, .z = 1};
 	Vector aheadProj = proj(direction, directUp);
 
@@ -98,7 +139,7 @@ void redraw(Vector direction, Point camera, float tilt) {
 			Vector currentDirection = direction;
 			currentDirection = add(mult((x * dist - 0.5), realRight), currentDirection);
 			currentDirection = add(mult((y * dist - ystart), realUp), currentDirection);
-			putPixel(x, y, computeColor(currentDirection, camera));
+			putPixel(x, y, computeColor(currentDirection, camera, scene));
 		}
 	}
 }
@@ -110,7 +151,32 @@ int main() {
 	Vector direction = (Vector) {.x = 0, .y = 1, .z = 0};
 	float tilt = 0;
 
-	redraw(direction, camera, tilt);
+	Scene scene;
+	scene.scene = malloc(sizeof(Object));
+	scene.light = malloc(sizeof(LightSource));
+	scene.objects = 1;
+	scene.scene[0]= (Object) {
+		.type = SPHERE,
+		.sphere = (Sphere) {
+			.center = (Point){
+				.x = 0,
+				.y = 10,
+				.z = 0,
+			},
+			.radius = 1,
+		},
+	};
+	scene.sources = 1;
+	scene.light[0]= (LightSource) {
+		.location = (Point) {
+			.x = -2,
+			.y = 4,
+			.z = -1,
+		},
+		.strength = 200,
+	};
+
+	redraw(direction, camera, tilt, scene);
 	sleep(5);
 	exit(EXIT_SUCCESS);
 }
