@@ -18,7 +18,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 Contact me at natechoe1@gmail.com
 */
 
-#include <stdint.h>
+#include <math.h>
+#include <stdlib.h>
 
 #include "vectors.h"
 
@@ -106,4 +107,14 @@ Vector sub(Vector v, Vector u) {
 		.y = v.y - u.y,
 		.z = v.z - u.z,
 	};
+}
+
+Vector reflection(Vector v, Vector norm) {
+//given the normal vector of some plane, find the reflection of that plane onto v.
+	norm = mult(2, proj(norm, v));
+	return add(v, norm);
+}
+
+float angle(Vector u, Vector v) {
+	return acos(dot(u, v) / sqrt(mag2(u) * mag2(v)));
 }

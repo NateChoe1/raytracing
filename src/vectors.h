@@ -41,3 +41,5 @@ Vector end(Point start, Vector v);
 #define add(v, u) end(v, u)
 //I don't feel like making the same thing twice, ok?
 Vector sub(Vector v, Vector u);
+Vector reflection(Vector v, Vector norm);
+float angle(Vector v, Vector u);

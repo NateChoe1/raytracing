@@ -20,8 +20,8 @@ Contact me at natechoe1@gmail.com
 
 #include <math.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #include "fb.h"
 #include "vectors.h"
@@ -29,19 +29,50 @@ Contact me at natechoe1@gmail.com
 
 int32_t computeColor(Vector v, Point start) {
 //TODO: Add scene data to function args
-//For now there is just a sphere of radius 3 at (1, 5, 2)
-	//printf("%f %f %f\n", v.x, v.y, v.z);
-
-	Point center = (Point) {.x = 0, .y = 5, .z = 0};
+//For now there is just a sphere of radius 1 at (0, 5, 0)
+	Point center = (Point) {.x = 2, .y = 10, .z = 0};
+	Point light = (Point) {.x = -1, .y = 5, .z = 2};
 	Vector toSphere = PQ(start, center);
 	//NOTE: this is not very well optimized
 
 	Vector toClosest = proj(v, toSphere);
 	Point closest = end(start, toClosest);
-	if (d2(closest, center) > 1) {
-		return RGB(0, 0, 0);
+	float radius = 1;
+	if (d2(closest, center) < radius * radius) {
+		//the distance between a point on a line and another point create a quadratic. Converting
+		//a vector to parametric form and graphing the relationship between t and the distance
+		//from the solution for that t and a point produces a quadratic which can be solved with
+		//the quadratic formula.
+		float cxd = start.x - center.x;
+		float cyd = start.y - center.y;
+		float czd = start.z - center.z;
+		float a = (v.x * v.x + v.y * v.y + v.z * v.z);
+		float b = 2 * (
+				v.x * cxd +
+				v.y * cyd +
+				v.z * czd
+		);
+		float c = cxd * cxd + cyd * cyd + czd * czd - radius * radius;
+
+		float discriminant = (b * b - 4 * a * c);
+		if (discriminant < 0)
+			return RGB(255, 255, 255);
+		float t = (-b + sqrt(discriminant)) / (2 * a);
+		if (t < 0)
+			return RGB(255, 255, 255);
+
+		Point intersection = end(start, mult(t, v));
+		Vector norm = PQ(center, intersection);
+		Vector bounce = reflection(v, norm);
+		Vector toLight = PQ(intersection, light);
+
+		float theta = angle(bounce, toLight);
+		float diff = M_PI - fabs(theta - M_PI) - 2;
+		int col = (int) (diff * 200);
+
+		return RGB(col, col, col);
 	}
-	return RGB(255, 255, 255);
+	return RGB(0, 0, 0);
 }
 
 void redraw(Vector direction, Point camera, float tilt) {
