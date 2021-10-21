@@ -61,55 +61,60 @@ bool sphereCollision(Point start, Vector v,
 	return true;
 }
 
-bool sceneCollision(Point start, Vector v,
+int sceneCollision(Point start, Vector v,
 		Point *collisionReturn, Vector *normalVector,
 		Scene scene) {
 	int bestObject = -1;
 	Point bestPoint;
 	Vector bestVector;
-	float mostDistance = FLT_MAX;
+	float mostDistance = FLT_MIN;
 	for (int i = 0; i < scene.objects; i++) {
-		Point p;
-		Vector v;
+		Point intersection;
+		Vector normal;
 		switch (scene.scene[i].type) {
 			case SPHERE:
-				if (sphereCollision(start, v, &p, &v, scene.scene[i].sphere))
+				if (sphereCollision(start, v, &intersection, &normal, scene.scene[i].sphere))
 					break;
 				continue;
 			default:
-				return false;
+				continue;
 		}
-		float curr = mag2(PQ(start, p));
-		if (curr < mostDistance) {
+		float curr = mag2(PQ(start, intersection));
+		if (curr > mostDistance) {
 			mostDistance = curr;
 			bestObject = i;
-			bestPoint = p;
-			bestVector = v;
+			bestPoint = intersection;
+			bestVector = normal;
 		}
 	}
 	if (bestObject == -1)
-		return false;
-	*collisionReturn = bestPoint;
-	*normalVector = bestVector;
-	return true;
+		return -1;
+	if (collisionReturn)
+		*collisionReturn = bestPoint;
+	if (normalVector)
+		*normalVector = bestVector;
+	return bestObject;
 }
 
 int32_t computeColor(Vector v, Point start, Scene scene) {
-	Point light = (Point) {.x = -1, .y = 5, .z = 2};
 	Point intersection;
 	Vector normal;
-	Sphere sphere = (Sphere) {
-		.center = (Point) {.x = 0, .y = 10, .z = 0},
-		.radius = 1,
-	};
 
-
-	if (sphereCollision(start, v, &intersection, &normal, sphere)) {
+	int collision = sceneCollision(start, v, &intersection, &normal, scene);
+	if (collision != -1) {
 		Vector bounce = reflection(v, normal);
-		Vector toLight = PQ(intersection, light);
+		Vector toLight = PQ(intersection, scene.light[0].location);
 		float theta = angle(bounce, toLight);
 		float diff = M_PI - fabs(theta - M_PI) - 2;
-		int col = (int) (diff * 200);
+		int col = 0;
+		for (int i = 0; i < scene.sources; i++) {
+			collision = sceneCollision(intersection, toLight, NULL, NULL, scene);
+			if (collision != -1) {
+				int cur = (int) (diff * scene.scene[collision].brightness * scene.light[0].strength);
+				if (cur > col)
+					col += cur;
+			}
+		}
 
 		return RGB(col, col, col);
 	}
@@ -142,41 +147,4 @@ void redraw(Vector direction, Point camera, float tilt, Scene scene) {
 			putPixel(x, y, computeColor(currentDirection, camera, scene));
 		}
 	}
-}
-
-int main() {
-	initFramebuffer(getenv("FRAMEBUFFER"));
-
-	Point camera = (Point) {.x = 0, .y = 0, .z = 0};
-	Vector direction = (Vector) {.x = 0, .y = 1, .z = 0};
-	float tilt = 0;
-
-	Scene scene;
-	scene.scene = malloc(sizeof(Object));
-	scene.light = malloc(sizeof(LightSource));
-	scene.objects = 1;
-	scene.scene[0]= (Object) {
-		.type = SPHERE,
-		.sphere = (Sphere) {
-			.center = (Point){
-				.x = 0,
-				.y = 10,
-				.z = 0,
-			},
-			.radius = 1,
-		},
-	};
-	scene.sources = 1;
-	scene.light[0]= (LightSource) {
-		.location = (Point) {
-			.x = -2,
-			.y = 4,
-			.z = -1,
-		},
-		.strength = 200,
-	};
-
-	redraw(direction, camera, tilt, scene);
-	sleep(5);
-	exit(EXIT_SUCCESS);
 }

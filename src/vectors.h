@@ -43,3 +43,4 @@ Vector end(Point start, Vector v);
 Vector sub(Vector v, Vector u);
 Vector reflection(Vector v, Vector norm);
 float angle(Vector v, Vector u);
+void printVector(Vector v);

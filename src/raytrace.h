@@ -32,6 +32,7 @@ typedef struct {
 
 typedef struct {
 	int type;
+	float brightness;
 	union {
 		Sphere sphere;
 	};
@@ -45,6 +46,6 @@ typedef struct {
 } Scene;
 
 bool sphereCollision(Point start, Vector v, Point *collisionReturn, Vector *normalVector, Sphere sphere);
-bool sceneCollision(Point start, Vector v, Point *collisionReturn, Vector *normalVector, Scene scene);
+int sceneCollision(Point start, Vector v, Point *collisionReturn, Vector *normalVector, Scene scene);
 int32_t computeColor(Vector v, Point start, Scene scene);
 void redraw(Vector direction, Point camera, float tilt, Scene scene);

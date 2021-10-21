@@ -19,6 +19,7 @@ Contact me at natechoe1@gmail.com
 */
 
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "vectors.h"
@@ -76,7 +77,7 @@ float dot(Vector u, Vector v) {
 Vector cross(Vector u, Vector v) {
 	return (Vector) {
 		.x = u.y * v.z - u.z * v.y, 
-		.y = u.x * v.z - u.z * v.x,
+		.y = u.z * v.x - u.x * v.z,
 		.z = u.x * v.y - u.y * v.x,
 	};
 }
@@ -117,4 +118,8 @@ Vector reflection(Vector v, Vector norm) {
 
 float angle(Vector u, Vector v) {
 	return acos(dot(u, v) / sqrt(mag2(u) * mag2(v)));
+}
+
+void printVector(Vector v) {
+	printf("%f %f %f\n", v.x, v.y, v.z);
 }
