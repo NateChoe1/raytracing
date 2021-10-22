@@ -51,7 +51,7 @@ bool sphereCollision(Point start, Vector v,
 	float discriminant = (b * b) - (4 * a * c);
 	if (discriminant < 0)
 		return false;
-	float t = (-b + sqrt(discriminant)) / (2 * a);
+	float t = (-b - sqrt(discriminant)) / (2 * a);
 	if (t < 0)
 		return false;
 
@@ -67,7 +67,7 @@ int sceneCollision(Point start, Vector v,
 	int bestObject = -1;
 	Point bestPoint;
 	Vector bestVector;
-	float mostDistance = FLT_MIN;
+	float mostDistance = FLT_MAX;
 	for (int i = 0; i < scene.objects; i++) {
 		Point intersection;
 		Vector normal;
@@ -80,7 +80,7 @@ int sceneCollision(Point start, Vector v,
 				continue;
 		}
 		float curr = mag2(PQ(start, intersection));
-		if (curr > mostDistance) {
+		if (curr < mostDistance) {
 			mostDistance = curr;
 			bestObject = i;
 			bestPoint = intersection;
@@ -103,17 +103,15 @@ int32_t computeColor(Vector v, Point start, Scene scene) {
 	int collision = sceneCollision(start, v, &intersection, &normal, scene);
 	if (collision != -1) {
 		Vector bounce = reflection(v, normal);
-		Vector toLight = PQ(intersection, scene.light[0].location);
-		float theta = angle(bounce, toLight);
-		float diff = M_PI - fabs(theta - M_PI) - 2;
 		int col = 0;
 		for (int i = 0; i < scene.sources; i++) {
-			collision = sceneCollision(intersection, toLight, NULL, NULL, scene);
-			if (collision != -1) {
-				int cur = (int) (diff * scene.scene[collision].brightness * scene.light[0].strength);
-				if (cur > col)
-					col += cur;
-			}
+			Vector toLight = PQ(intersection, scene.light[0].location);
+			float theta = angle(bounce, toLight);
+			float diff = fabs(theta - M_PI);
+			diff *= diff;
+			int cur = (int) (diff * scene.scene[collision].brightness * scene.light[i].strength);
+			if (cur > col)
+				col += cur;
 		}
 
 		return RGB(col, col, col);

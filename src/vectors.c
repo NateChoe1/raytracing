@@ -90,6 +90,14 @@ Vector mult(float scalar, Vector v) {
 	};
 }
 
+Vector flip(Vector v) {
+	return (Vector) {
+		.x = v.x * -1,
+		.y = v.y * -1,
+		.z = v.z * -1,
+	};
+}
+
 Vector proj(Vector v, Vector u) {
 	return mult(dot(u, v) / dot(v, v), v);
 }
@@ -112,8 +120,7 @@ Vector sub(Vector v, Vector u) {
 
 Vector reflection(Vector v, Vector norm) {
 //given the normal vector of some plane, find the reflection of that plane onto v.
-	norm = mult(2, proj(norm, v));
-	return add(v, norm);
+	return add(v, mult(-2, proj(norm, v)));
 }
 
 float angle(Vector u, Vector v) {
